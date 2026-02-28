@@ -21,6 +21,42 @@ if(isset($_GET['mark_read'])) {
         <p style="color:var(--text-muted); font-size:1.1rem; margin-top:0.5rem;">View your notifications and recent activities.</p>
     </div>
 
+    <!-- Bookings Section -->
+    <div style="background:var(--white); padding:2rem; border-radius:16px; box-shadow:var(--shadow); border: 1px solid var(--border); margin-bottom: 2rem;">
+        <h3 style="margin-bottom:1.5rem; color:var(--secondary); display:flex; align-items:center;">
+            <i class="fa-solid fa-bookmark" style="margin-right:10px; color:var(--primary);"></i> My Bookings
+        </h3>
+        <div class="table-responsive">
+            <table class="table">
+                <tr>
+                    <th>Property</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+                <?php
+                $mybsql = "SELECT b.*, p.Location FROM Bookings b JOIN Properties p ON b.PropertyID = p.PropertyID WHERE b.UserID = $user_id ORDER BY b.CreatedAt DESC";
+                $mybres = $conn->query($mybsql);
+                if($mybres->num_rows > 0) {
+                    while($mybrow = $mybres->fetch_assoc()) {
+                        $badgeClass = '';
+                        if($mybrow['Status'] == 'Confirmed') $badgeClass = 'badge-success';
+                        else if($mybrow['Status'] == 'Pending') $badgeClass = 'badge-warning';
+                        else $badgeClass = 'badge-danger';
+                        
+                        echo "<tr>";
+                        echo "<td><a href='property_details.php?id={$mybrow['PropertyID']}' style='color:var(--primary); font-weight:600; text-decoration:none;'>" . htmlspecialchars($mybrow['Location']) . "</a></td>";
+                        echo "<td>" . date('M j, Y', strtotime($mybrow['CreatedAt'])) . "</td>";
+                        echo "<td><span class='badge $badgeClass'>" . htmlspecialchars($mybrow['Status']) . "</span></td>";
+                        echo "</tr>";
+                    }
+                } else {
+                    echo "<tr><td colspan='3' style='text-align:center; padding: 2rem; color:var(--text-muted);'>You haven't made any bookings yet. <br><br><a href='index.php' class='btn btn-primary'>Find Properties</a></td></tr>";
+                }
+                ?>
+            </table>
+        </div>
+    </div>
+
     <!-- Notifications Section -->
     <div style="background:var(--white); padding:2rem; border-radius:16px; box-shadow:var(--shadow); border: 1px solid var(--border);">
         <h3 style="margin-bottom:1.5rem; color:var(--secondary); display:flex; align-items:center;">

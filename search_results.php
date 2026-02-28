@@ -3,7 +3,7 @@
 
 <div style="background: var(--secondary); padding: 3rem 5%; text-align: center; color: var(--white); margin-bottom: 3rem;">
     <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">Search Results</h1>
-    <form action="" method="GET" style="max-width: 800px; margin: 0 auto; display: flex; gap: 1rem; background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 12px; backdrop-filter: blur(10px);">
+    <form action="search_results.php" method="GET" style="max-width: 800px; margin: 0 auto; display: flex; gap: 1rem; background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 12px; backdrop-filter: blur(10px);">
         <input type="text" name="location" value="<?php echo isset($_GET['location']) ? htmlspecialchars($_GET['location']) : ''; ?>" placeholder="City or Location..." style="flex:1; padding: 1rem; border:none; border-radius:8px; font-size:1.05rem;" required>
         <input type="number" name="budget" value="<?php echo isset($_GET['budget']) ? htmlspecialchars($_GET['budget']) : ''; ?>" placeholder="Max Budget" style="flex:1; padding: 1rem; border:none; border-radius:8px; font-size:1.05rem;">
         <button type="submit" class="btn btn-primary" style="padding: 1rem 2rem; font-size:1.05rem;"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
@@ -13,18 +13,28 @@
 <div class="container">
     <div class="grid">
         <?php
-        $where = "p.Status = 'Active'";
-        if(isset($_GET['location']) && !empty($_GET['location'])) {
-            $loc = sanitize($conn, $_GET['location']);
-            $where .= " AND p.Location LIKE '%$loc%'";
+        // PHP Filtering Logic with Prepared Statements
+        $base_sql = "SELECT p.*, u.Name as OwnerName FROM Properties p JOIN Users u ON p.OwnerID = u.UserID WHERE p.Status = 'Active'";
+        $types = "";
+        $params = [];
+        
+        if (isset($_GET['location']) && !empty($_GET['location'])) {
+            $base_sql .= " AND p.Location LIKE ?";
+            $types .= "s";
+            $search_location = "%" . $_GET['location'] . "%";
+            $params[] = $search_location;
         }
-        if(isset($_GET['budget']) && !empty($_GET['budget'])) {
-            $budget = floatval($_GET['budget']);
-            $where .= " AND p.Price <= $budget";
+
+        $base_sql .= " ORDER BY p.CreatedAt DESC";
+        
+        $stmt = $conn->prepare($base_sql);
+        
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
         }
         
-        $sql = "SELECT p.*, u.Name as OwnerName FROM Properties p JOIN Users u ON p.OwnerID = u.UserID WHERE $where ORDER BY p.CreatedAt DESC";
-        $result = $conn->query($sql);
+        $stmt->execute();
+        $result = $stmt->get_result();
         
         $images = [
             'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80', 
@@ -54,12 +64,14 @@
                 echo '</div></div>';
             }
         } else {
+            // Display message when no properties match
             echo '<div style="text-align:center; grid-column: 1/-1; padding: 4rem; background: var(--white); border-radius: 20px; box-shadow: var(--shadow); border: 1px solid var(--border);">';
             echo '<i class="fa-regular fa-face-frown" style="font-size: 4rem; color: var(--text-muted); margin-bottom: 1rem;"></i>';
-            echo '<h3 style="font-size: 1.5rem; color: var(--secondary); margin-bottom: 1rem;">No properties matched your search.</h3>';
-            echo '<p style="color: var(--text-muted);">Try changing your location or increasing your budget.</p>';
+            echo '<h3 style="font-size: 1.5rem; color: var(--secondary); margin-bottom: 1rem;">No properties available in this location.</h3>';
             echo '</div>';
         }
+        
+        $stmt->close();
         ?>
     </div>
 </div>

@@ -126,29 +126,36 @@ if($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['submit_review'])) {
                 
                 <h3 style="color:var(--secondary); margin-bottom:1.5rem; display:flex; align-items:center;"><i class="fa-solid fa-address-card" style="color:var(--primary); margin-right:10px;"></i> Owner Details</h3>
                 
-                <?php if(isset($_SESSION['user_id'])): ?>
-                    <form method="POST" style="margin-bottom:1.5rem;">
+                <?php if(isset($_SESSION['user_id']) && $_SESSION['role'] == 'Seeker'): ?>
+                    <div style="margin-bottom:1.5rem;">
                         <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:1rem;">
                             <li style="display:flex; gap:1rem; align-items:center; background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
                                 <i class="fa-solid fa-user" style="color:var(--text-muted); font-size:1.2rem; min-width:20px; text-align:center;"></i> 
                                 <span style="font-weight:600; color:var(--secondary);"><?php echo htmlspecialchars($prop['OwnerName']); ?></span>
                             </li>
-                            <li style="display:flex; gap:1rem; align-items:center; background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
-                                <i class="fa-solid fa-envelope" style="color:var(--text-muted); font-size:1.2rem; min-width:20px; text-align:center;"></i> 
-                                <span><a href="mailto:<?php echo htmlspecialchars($prop['Email']); ?>" style="color:var(--primary); font-weight:600;"><?php echo htmlspecialchars($prop['Email']); ?></a></span>
-                            </li>
-                            <li style="display:flex; gap:1rem; align-items:center; background: #f8fafc; padding: 1rem; border-radius: 12px; border: 1px solid var(--border);">
-                                <i class="fa-solid fa-phone" style="color:var(--text-muted); font-size:1.2rem; min-width:20px; text-align:center;"></i> 
-                                <span><a href="tel:<?php echo htmlspecialchars($prop['ContactInfo']); ?>" style="color:var(--primary); font-weight:600;"><?php echo htmlspecialchars($prop['ContactInfo']); ?></a></span>
-                            </li>
                         </ul>
-                    </form>
-                    <a href="tel:<?php echo htmlspecialchars($prop['ContactInfo']); ?>" class="btn btn-primary" style="width:100%; text-align:center; padding: 1rem; font-size:1.1rem; margin-top:1rem;"><i class="fa-solid fa-phone-volume"></i> Call Owner Now</a>
-                <?php else: ?>
+                    </div>
+                    <?php
+                    // Check if already booked
+                    $bookCheck = $conn->query("SELECT Status FROM Bookings WHERE PropertyID = $id AND UserID = {$_SESSION['user_id']} ORDER BY CreatedAt DESC LIMIT 1");
+                    $hasBooking = false;
+                    $bStatus = '';
+                    if($bookCheck->num_rows > 0) {
+                        $brow = $bookCheck->fetch_assoc();
+                        $hasBooking = true;
+                        $bStatus = $brow['Status'];
+                    }
+                    if($hasBooking && ($bStatus == 'Pending' || $bStatus == 'Confirmed')): 
+                    ?>
+                        <div class="alert alert-success" style="text-align:center; background:#dcfce7; color:#166534; padding:1rem; border-radius:12px;"><i class="fa-solid fa-check-circle"></i> Booking Status: <strong><?php echo $bStatus; ?></strong></div>
+                    <?php else: ?>
+                        <a href="book.php?id=<?php echo $id; ?>" class="btn btn-primary" style="width:100%; text-align:center; padding: 1rem; font-size:1.1rem; margin-top:1rem;"><i class="fa-solid fa-qrcode"></i> Book Now & Pay</a>
+                    <?php endif; ?>
+                <?php elseif(!isset($_SESSION['user_id'])): ?>
                     <div style="background: rgba(15, 118, 110, 0.05); padding: 2rem; border-radius: 12px; text-align: center; border: 1px dashed var(--primary);">
                         <i class="fa-solid fa-lock" style="font-size:2rem; color:var(--primary); margin-bottom:1rem;"></i>
-                        <h4 style="color:var(--secondary); margin-bottom:0.5rem;">Contact Information Hidden</h4>
-                        <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:1.5rem;">Please log in to your account to view the owner's details.</p>
+                        <h4 style="color:var(--secondary); margin-bottom:0.5rem;">Login Required</h4>
+                        <p style="color:var(--text-muted); font-size:0.95rem; margin-bottom:1.5rem;">Please log in to your account to book this property.</p>
                         <a href="login.php" class="btn btn-primary" style="width:100%;"><i class="fa-solid fa-right-to-bracket"></i> Login Now</a>
                     </div>
                 <?php endif; ?>
